@@ -7,12 +7,14 @@
     <link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.css">
     <link rel="stylesheet" href="/stylesheets/maps.css">
 
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/meny/1.4.0/meny.min.js"></script>
     <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/all.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.js"></script>
 
     <title>RTC Maps</title>
   </head>
@@ -30,26 +32,49 @@
           <span></span>
         </label>
       </li>
-      <li>
+      <li style="margin-top: 30px">
         <label class='alignLeft' for='showGateways'>Show Gateways</label>
         <input class='sw' id='showGateways' name='toggle' type='checkbox'>
         <label class='alignRight' for='showGateways'>
           <span></span>
         </label>
       </li>
-      <li>
+      <li style="margin-top: 30px">
         <label class='alignLeft' for='addbeacon'>Add Beacon</label>
         <input class='sw' id='addbeacon' name='toggle' type='checkbox'>
         <label class='alignRight' for='addbeacon'>
           <span></span>
         </label>
       </li>
-      <li>
+      <li style="margin-top: 30px">
         <label class='alignLeft' for='addgateway'>Add GateWay</label>
         <input class='sw' id='addgateway' name='toggle' type='checkbox'>
         <label class='alignRight' for='addgateway'>
           <span></span>
         </label>
+      </li>
+      <li style="margin-top: 30px">
+        <label class='alignLeft' for='addExistingGateway'>Add Existing GateWay</label>
+        <input class='sw' id='addExistingGateway' name='toggle' type='checkbox'>
+        <label class='alignRight' for='addExistingGateway'>
+          <span></span>
+        </label>
+      </li>
+      <li style="margin-top: 30px">
+        <label class='alignLeft' for='moveDevices'>Move Devices</label>
+        <input class='sw' id='moveDevices' name='toggle' type='checkbox'>
+        <label class='alignRight' for='moveDevices'>
+          <span></span>
+        </label>
+      </li>
+      <li style="margin-top: 40px">
+        <div class="ui category search">
+          <div class="ui icon input">
+            <input class="prompt" type="text" placeholder="Search device">
+            <i class="search icon"></i>
+          </div>
+          <div class="results"></div>
+        </div>
       </li>
     </ul>
   </div>
@@ -180,6 +205,51 @@
             <div class="form-group col-md-6">
               <label for="yValue"><strong>Relative Y</strong></label>
               <input type="text" class="form-control" id="yValue" disabled>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="existingGatewayForm" tabindex="-1" role="dialog" aria-labelledby="existingGatewayFormLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="registerExistingGateway">
+        <div class="modal-header">
+          <h5 class="modal-title" id="existingGatewayFormLabel">Add Existing Gateway</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row" style="display: flex; justify-content: center;">
+            <div class="form-group">
+              <select id='selectGateway' name="gateway_id" data-placeholder="Select a gateway">
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="xValue"><strong>Relative X</strong></label>
+              <input type="text" class="form-control" id="xValue" name="x" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="yValue"><strong>Relative Y</strong></label>
+              <input type="text" class="form-control" id="yValue" name="y" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="buiding_id"><strong>Buliding ID</strong></label>
+              <input type="text" class="form-control" id="building_id" name="building_id" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="floor_id"><strong>Floor</strong></label>
+              <input type="text" class="form-control" id="floor_id" name="floor" readonly>
             </div>
           </div>
         </div>

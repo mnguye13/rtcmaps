@@ -144,6 +144,10 @@ ul {
   overflow-y: scroll;
 }
 
+.popover-header {
+  margin-top: 0;
+}
+
 input.sw {
   opacity: 0;
   position: absolute;
