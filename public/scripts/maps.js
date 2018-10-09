@@ -1,4 +1,4 @@
-/*global $ Meny d3 */
+/*global $ Meny d3 moment */
 
 $(document).ready(function() {
   $('#floor').select2();
@@ -14,14 +14,23 @@ $(document).ready(function() {
       });
   });
 
+  $.get('https://api.iitrtclab.com/deployment/beacon', (data) => {
+      const beacons = data.map(beacon => ({ id: beacon.id, text: `Major: ${beacon.major} Minor: ${beacon.minor}`}));
+      $('#selectBeacon').select2({
+          data: beacons,
+          width: '100%',
+          dropdownParent: $("#existingBeaconForm")
+      });
+  });
+
   customStyles();
 
   const searchContent = populateSearch((newBeacons) => {
-      $('.ui.search')
-          .search({
-              type: 'category',
-              source: newBeacons
-          });
+    $('.ui.search')
+      .search({
+          type: 'category',
+          source: newBeacons
+      });
   });
 
   var meny = Meny.create({
@@ -84,6 +93,25 @@ $(document).ready(function() {
         d3.select('svg').on('click', null);
         $('#existingGatewayForm').modal('hide');
       }
+  });
+
+  $('#addExistingBeacon').change(function () {
+    if ($(this).is(':checked')) {
+      d3.select('svg').on("click", function () {
+          // This function will run when someone clicks on map when add mode is activated
+          let coordinates = d3.mouse(this);
+          let position = realPosition(coordinates[0], coordinates[1], mobile);
+          renderTemporaryBeacon(coordinates[0], coordinates[1]);
+          $('#existingBeaconForm').modal('show');
+          $('#existingBeaconForm #xValue').val(position.x);
+          $('#existingBeaconForm #yValue').val(position.y);
+          $('#existingBeaconForm #building_id').val(mapBuildingNameToId($('#building').val()));
+          $('#existingBeaconForm #floor_id').val($('#floor').val());
+      });
+    } else {
+      d3.select('svg').on('click', null);
+      $('#existingBeaconForm').modal('hide');
+    }
   });
 
   $('#addbeacon').change(function () {
@@ -168,6 +196,19 @@ $(document).ready(function() {
 
       event.preventDefault();
   });
+
+  $("#registerExistingBeacon").submit(function( event ) {
+      const formData = parseToJSON($( this ).serializeArray());
+      $.post('https://api.iitrtclab.com/beacons/existing', formData)
+        .done((beacon) => {
+          window.location.reload(false);
+        })
+        .fail((xhr, status, error) => {
+          displayError(error);
+        });
+
+      event.preventDefault();
+  });
 });
 
 function updateLocations(mobile) {
@@ -212,6 +253,22 @@ function deleteGateway(gateway) {
   })
   .done(function(msg){
     window.location.reload(false);
+  })
+  .fail(function(xhr, status, error) {
+    // error handling
+    displayError(error);
+  });
+}
+
+function deleteGatewayBeacon(beaconId, self) {
+  $.ajax({
+    method:"DELETE",
+    url:"https://api.iitrtclab.com/gatewaybeacon",
+    data: {beacon_id: beaconId}
+  })
+  .done(function(msg){
+    $(self).parent().parent().remove();
+    displaySuccess('Deleted association between beacon and gateway');
   })
   .fail(function(xhr, status, error) {
     // error handling
@@ -279,7 +336,14 @@ function renderBeacons(mobile) {
   let buildingFloor = $('#floor').select2('data')[0].text.split('-');
   $.get(`https://api.iitrtclab.com/beacons/${buildingFloor[0]}/${buildingFloor[1]}`, (beacons) => {
     beacons.forEach((beacon) => {
-      setBeacon(beacon, mobile);
+      $.get('https://api.iitrtclab.com/deviceManagement/rssi', {beacon_id: beacon.beacon_id})
+        .done((beaconRssi) => {
+          setBeacon(beacon, mobile, beaconRssi);
+        })
+        .fail((err) => {
+          displayError(err);
+          setBeacon(beacon, mobile, {});
+        });
     });
   });
 }
@@ -288,12 +352,19 @@ function renderGateways(mobile) {
   let buildingFloor = $('#floor').select2('data')[0].text.split('-');
   $.get(`https://api.iitrtclab.com/gateways/${buildingFloor[0]}/${buildingFloor[1]}`, (gateways) => {
       gateways.forEach((gateway) => {
-        setGateway(gateway, mobile);
+        $.get('https://api.iitrtclab.com/gatewaybeacon', { gateway_id: gateway.gateway_id })
+          .done((gatewayBeacons) => {
+            setGateway(gateway, mobile, gatewayBeacons);
+          })
+          .fail((err) => {
+            displayError(err);
+            setGateway(gateway, mobile, []);
+          });
       });
   });
 }
 
-function renderBeacon (x, y, beacon) {
+function renderBeacon (x, y, beacon, beaconRssi) {
 
   var group = d3.select('svg').append('g').attr('class', 'beacons').attr('id', `${beacon.beacon_id}`).attr('beacon-data', JSON.stringify(beacon));
 
@@ -311,6 +382,9 @@ function renderBeacon (x, y, beacon) {
           .attr('data-html', true)
           .attr('data-content', `<div class="row"><div class="col-md-12 text-center"><strong>MAC Address:</strong> ${beacon.beacon_id}</div></div>
             <div style="margin-top: 2px" class="row"><div class="col-md-6 text-center"><strong>x</strong>: ${Number((beacon.x).toFixed(2))}</div><div class="col-md-6 text-center"><strong>y:</strong> ${Number((beacon.y).toFixed(2))}</div></div>
+            <div class="row"><div class="col-md-12 text-center"><strong>Last recorded RSSI:</strong> ${beaconRssi === {} ? 'No information recieved from gateway' : beaconRssi.rssi}</div></div>
+            <div class="row"><div class="col-md-12 text-center"><strong>RSSI recieved at:</strong> ${beaconRssi === {} ? 'No information recieved from gateway' : moment(beaconRssi.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</div></div>
+            <div class="row"><div class="col-md-12 text-center"><strong>Gateway associated with:</strong> ${beaconRssi === {} ? 'No information recieved from gateway' : beaconRssi.gateway_id}</div></div>
             <div style="margin-top: 4px" class="row"><div class="col-md-6 text-center"><button style="width:100%" type="button" class="btn btn-warning btn-sm">Edit</button></div><div class="col-md-6 text-center"><button style="width:100%" type="button" class="btn btn-danger btn-sm" onclick="deleteBeacon('${beacon.beacon_id}')">Delete</button></div></div>
             <div style="margin-top: 4px" class="row"><div class="col-md-12 text-center"><button style="width:70%" type="button" id="closePopover" class="btn btn-secondary btn-sm">Close</button></div></div>`)
           .attr('data-trigger', 'manual')
@@ -381,9 +455,9 @@ function renderTemporaryBeacon (x, y) {
         .attr("transform", "rotate(180deg)")
     }
 
-function renderGateway (x, y, gateway) {
+function renderGateway (x, y, gateway, gatewayBeacons) {
   let self;
-  var group = d3.select('svg').append('g').attr('class', 'gateways').attr('gateway-data', JSON.stringify(gateway));
+  var group = d3.select('svg').append('g').attr('class', 'gateways').attr('gateway-data', JSON.stringify(gateway)).attr('gateway-beacons', JSON.stringify(gatewayBeacons));
 
   group.append('circle')
       .attr("cx", x)
@@ -399,12 +473,23 @@ function renderGateway (x, y, gateway) {
       .attr('data-html', true)
       .attr('data-content', `<div class="row"><div class="col-md-12 text-center"><strong>MAC Address:</strong> ${gateway.gateway_id}</div></div>
         <div style="margin-top: 2px" class="row"><div class="col-md-6 text-center"><strong>x</strong>: ${Number((gateway.x).toFixed(2))}</div><div class="col-md-6 text-center"><strong>y:</strong> ${Number((gateway.y).toFixed(2))}</div></div>
+        <div class="row"><div class="col-md-12 text-center"><strong>Battery Level:</strong> ${Number(((gateway.charged/7)*100).toFixed(2))}%</div></div>
+        <div class="row"><div class="col-md-12 text-center"><strong>Last seen:</strong> ${moment(gateway.lastseen).format('MMMM Do YYYY, h:mm:ss a')}</div></div>
+        <div class="col-md-12 text-center"><strong>Associated Beacons:</strong></div>
+        <div>
+          ${gatewayBeacons.map(gatewayBeacon => `<div class="card text-white bg-info" style="margin-top: 7px;">
+              <div class="card-body" style="display: flex; justify-content: center; align-items: center; padding: 7px;">
+                <div><h5 style="margin-right: 16px;">${gatewayBeacon.beacon_id}</h5></div>
+                <button data-beacon-id="${gatewayBeacon.beacon_id}" type="button" class="btn btn-danger btn-sm deleteGatewayBeacon">Delete</button>
+              </div>
+            </div>`).join('')}
+        </div>
         <div style="margin-top: 4px" class="row"><div class="col-md-6 text-center"><button style="width:100%" type="button" class="btn btn-warning btn-sm">Edit</button></div><div class="col-md-6 text-center"><button style="width:100%" type="button" id="deleteGateway" class="btn btn-danger btn-sm">Delete</button></div></div>
         <div style="margin-top: 4px" class="row"><div class="col-md-12 text-center"><button style="width:70%" type="button" id="addBeaconsToGateways" class="btn btn-primary btn-sm">Add Beacons</button></div></div>
         <div style="margin-top: 4px" class="row"><div class="col-md-12 text-center"><button style="width:70%" type="button" id="closePopover" class="btn btn-secondary btn-sm">Close</button></div></div>`)
       .attr('data-trigger', 'manual')
       .attr('data-placement', 'top')
-      .attr('title', `Major: ${gateway.major} Minor: ${gateway.minor}`)
+      .attr('title', `Major: ${gateway.major} Minor: ${gateway.minor} <div id="battery${gateway.gateway_id}" class='battery'></div>`)
       .on('mouseover', function() {
           d3.select(this).transition()
               .duration(300)
@@ -418,12 +503,17 @@ function renderGateway (x, y, gateway) {
       .on('click', function() {
         self = this;
         $(this).popover('show');
+        const gatewayInfo = JSON.parse(d3.select(self.parentNode).attr('gateway-data'));
+        setGatewayBatteryLevel(gatewayInfo.gateway_id, gatewayInfo.charged);
+        const gatewayBeacons = JSON.parse(d3.select(self.parentNode).attr('gateway-beacons')).map(gatewayBeacon => gatewayBeacon.beacon_id);
         $('#deleteGateway').click(() => {
           deleteGateway(JSON.parse(d3.select(self.parentNode).attr('gateway-data')).gateway_id);
         });
-        $('#addBeaconsToGateways').click(function () {
+        $('.deleteGatewayBeacon').click(function() {
+          deleteGatewayBeacon($(this).attr('data-beacon-id'), this);
+        });
+        $('#addBeaconsToGateways').click(function() {
           //Store gateway info
-          const gatewayInfo = JSON.parse(d3.select(self.parentNode).attr('gateway-data'));
           $(this).after('<div style="margin-top: 4px" class="row"><div class="col-md-12 text-center"><button style="width:70%" type="button" id="stopAddingBeacons" class="btn btn-danger btn-sm">Stop Adding Beacons</button></div></div>');
           $('#stopAddingBeacons').click(function() {
             //restore state of beacons and gateways
@@ -452,20 +542,29 @@ function renderGateway (x, y, gateway) {
               .duration(300)
               .attr("r", "100");
 
-          d3.selectAll('.beacons').select('.mainCircle')
-              .style('fill', 'rgb(149, 237, 61)')
-              .on('click', function () {
-                // generate beacon and gateway object
-                const beaconInfo = JSON.parse(d3.select(this.parentNode).attr('beacon-data'));
-                d3.select(this).style('fill', 'rgb(98, 3, 198)');
-                console.log({
-                  gateway_id: gatewayInfo.gateway_id,
-                  beacon_id: beaconInfo.beacon_id,
-                });
-              })
-              .transition()
-              .duration(300)
-              .attr("r", "100");
+          d3.selectAll('.beacons').each(function(d,i) {
+            if($.inArray(d3.select(this).attr('id'), gatewayBeacons) === -1) {
+              d3.select(this).select('.mainCircle').style('fill', 'rgb(149, 237, 61)')
+                .on('click', function () {
+                  // generate beacon and gateway object
+                  const beaconInfo = JSON.parse(d3.select(this.parentNode).attr('beacon-data'));
+                  $.post('https://api.iitrtclab.com/gatewaybeacon', {
+                    gateway_id: gatewayInfo.gateway_id,
+                    beacon_id: beaconInfo.beacon_id,
+                  })
+                  .done(function(beacon){
+                    displaySuccess('Beacon added to gateway')
+                  })
+                  .fail(function(xhr, status, error) {
+                    displayError(error);
+                  });
+                  d3.select(this).style('fill', 'rgb(98, 3, 198)');
+                })
+                .transition()
+                .duration(300)
+                .attr("r", "100");
+            }
+          });
         });
         $('#closePopover').click(() => {
             $('[data-toggle="popover"]').popover('hide');
@@ -600,25 +699,43 @@ function inverseMapY(svgY) {
   return (svgY - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-function setBeacon(beacon, mobile) {
+function setBeacon(beacon, mobile, beaconRssi) {
   if (mobile) {
-    renderBeacon(mapX(beacon.x), mapY(beacon.y), beacon);
+    renderBeacon(mapX(beacon.x), mapY(beacon.y), beacon, beaconRssi);
   } else {
     const newX = mapX(parseFloat(d3.select('svg').attr('data-width'), 10)) - mapX(beacon.x);
-    renderBeacon(mapY(beacon.y), newX, beacon);
+    renderBeacon(mapY(beacon.y), newX, beacon, beaconRssi);
   }
 }
 
-function setGateway(gateway, mobile) {
-    if (mobile) {
-      renderGateway(mapX(gateway.x), mapY(gateway.y), gateway);
-    } else {
-      const newX = mapX(parseFloat(d3.select('svg').attr('data-width'), 10)) - mapX(gateway.x);
-      renderGateway(mapY(gateway.y), newX, gateway);
-    }
+function setGateway(gateway, mobile, gatewayBeacons) {
+  if (mobile) {
+    renderGateway(mapX(gateway.x), mapY(gateway.y), gateway, gatewayBeacons);
+  } else {
+    const newX = mapX(parseFloat(d3.select('svg').attr('data-width'), 10)) - mapX(gateway.x);
+    renderGateway(mapY(gateway.y), newX, gateway, gatewayBeacons);
+  }
+}
+
+function setGatewayBatteryLevel(gatewayId, charged) {
+  const batteryLevel = convertRange(charged, [0, 7], [0, 1.5]);
+  $(`<style>#battery${gatewayId}:after{height: ${batteryLevel > 1.4 ? 1.4 : batteryLevel}em; margin-top: ${batteryLevel > 1.4 ? 0.1 : 1.5 - batteryLevel}em;}</style>`).appendTo('head');
+}
+
+function convertRange( value, r1, r2 ) {
+    return ( value - r1[ 0 ] ) * ( r2[ 1 ] - r2[ 0 ] ) / ( r1[ 1 ] - r1[ 0 ] ) + r2[ 0 ];
 }
 
 function displayError(error) {
   $('.alert').remove();
-  $('nav').after(`<div class="alert alert-danger container" style="margin-top: 25px;" role="alert">Something went wrong: ${error}</div>`);
+  $('nav').after(`<div class="alert alert-danger container" style="margin-top: 25px;" role="alert">Something went wrong: ${error}<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button></div>`);
+}
+
+function displaySuccess(success) {
+  $('.alert').remove();
+  $('nav').after(`<div class="alert alert-success container" style="margin-top: 25px;" role="alert">${success}<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button></div>`);
 }

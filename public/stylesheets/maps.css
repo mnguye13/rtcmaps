@@ -146,6 +146,49 @@ ul {
 
 .popover-header {
   margin-top: 0;
+  padding-bottom: 14px;
+}
+
+.battery {
+  height: 1.9em;
+  width: 1.1em;
+  background-color: transparent;
+  box-sizing: border-box;
+  border: .15em #000000 solid;
+  float: right;
+  display: block;
+  margin-left: 1.2em;
+}
+
+.battery::before {
+  content: "";
+  height: .2em;
+  width: 0.5em;
+  background-color: #000000;
+  position: absolute;
+  margin-top: -.35em;
+  margin-left: .15em;
+}
+
+.battery::after {
+  content: "";
+  background-color: #000000;
+  width: 0.6em;
+  position: absolute;
+  margin-left: .13em;
+}
+
+.battery.depleted::after {
+  height: 1.4em;
+  margin-top: .1em;
+  background:
+          linear-gradient(113deg,
+          rgb(235, 106, 66) 0%,
+          rgb(235, 106, 66) 46%,
+          rgb(85, 85, 87) 46%,
+          rgb(85, 85, 87) 54%,
+          rgb(235, 106, 66) 54%,
+          rgb(235, 106, 66) 100%);
 }
 
 input.sw {

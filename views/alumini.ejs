@@ -47,6 +47,13 @@
         </label>
       </li>
       <li style="margin-top: 30px">
+        <label class='alignLeft' for='addExistingBeacon'>Add Existing Beacon</label>
+        <input class='sw' id='addExistingBeacon' name='toggle' type='checkbox'>
+        <label class='alignRight' for='addExistingBeacon'>
+          <span></span>
+        </label>
+      </li>
+      <li style="margin-top: 30px">
         <label class='alignLeft' for='addgateway'>Add GateWay</label>
         <input class='sw' id='addgateway' name='toggle' type='checkbox'>
         <label class='alignRight' for='addgateway'>
@@ -261,10 +268,56 @@
   </div>
 </div>
 
+<div class="modal fade" id="existingBeaconForm" tabindex="-1" role="dialog" aria-labelledby="existingBeaconFormLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="registerExistingBeacon">
+        <div class="modal-header">
+          <h5 class="modal-title" id="existingBeaconFormLabel">Add Existing Beacon</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row" style="display: flex; justify-content: center;">
+            <div class="form-group">
+              <select id='selectBeacon' name="beacon_id" data-placeholder="Select a beacon">
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="xValue"><strong>Relative X</strong></label>
+              <input type="text" class="form-control" id="xValue" name="x" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="yValue"><strong>Relative Y</strong></label>
+              <input type="text" class="form-control" id="yValue" name="y" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="buiding_id"><strong>Buliding ID</strong></label>
+              <input type="text" class="form-control" id="building_id" name="building_id" readonly>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="floor_id"><strong>Floor</strong></label>
+              <input type="text" class="form-control" id="floor_id" name="floor" readonly>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </body>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script>
   <script src="/scripts/maps.js"></script>
 </html>
